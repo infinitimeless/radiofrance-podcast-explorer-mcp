@@ -6,6 +6,7 @@ A Model Control Protocol (MCP) server that allows AI assistants like Claude to s
 
 - Search for podcasts and episodes by topic
 - Get program information for specific Radio France stations
+- Explore content organized by taxonomies (themes, categories, tags)
 - Retrieve detailed podcast and episode information
 - Process natural language queries to find relevant content
 - Get audio content metadata and stream URLs
@@ -47,7 +48,11 @@ Before running the server, you can verify your installation and API key by runni
 python run_tests.py
 ```
 
-This will run basic tests to ensure that the server can connect to the Radio France API and retrieve data.
+You can also run the GraphQL schema test to verify API structure:
+
+```bash
+python tests/test_schema.py
+```
 
 ## Running the Server
 
@@ -89,6 +94,15 @@ npx @modelcontextprotocol/inspector python server.py
 ```
 
 This will open a web interface where you can test each of the server's tools individually.
+
+## API Structure
+
+The Radio France API uses a taxonomy-based approach:
+
+1. **Taxonomies**: Categories, tags, and themes that organize content
+2. **Diffusions**: Content items (episodes, programs) associated with taxonomies
+3. **Brands**: Shows and podcast series
+4. **Grid**: Program schedules for stations
 
 ## Documentation
 
