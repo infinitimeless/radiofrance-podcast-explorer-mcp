@@ -48,6 +48,42 @@ To use this server with Claude Desktop:
 
 The server provides the following tools:
 
+### get_taxonomies(keyword=None, limit=10)
+
+Gets taxonomies (categories, tags, themes) from Radio France API.
+
+Example:
+```
+get_taxonomies("histoire", 5)
+```
+
+### get_diffusions(taxonomy_id, limit=10)
+
+Gets diffusions (content) related to a specific taxonomy.
+
+Example:
+```
+get_diffusions("c4291110-1341-11e8-b174-0a05d26f7eff", 5)
+```
+
+### get_brand(brand_id)
+
+Gets information about a specific brand (program/show).
+
+Example:
+```
+get_brand("fc6c1240-05db-11e9-a611-42010ae00004")
+```
+
+### get_station_grid(station_code)
+
+Gets the program grid for a specific Radio France station.
+
+Example:
+```
+get_station_grid("franceculture")
+```
+
 ### search_podcasts(query, limit=10)
 
 Searches for podcasts matching the query string.
@@ -124,15 +160,32 @@ Here are some example queries you can ask Claude when using this MCP server:
 7. "Quelles sont les catégories de podcasts disponibles sur Radio France?"
 8. "Comment puis-je accéder au flux audio de cette émission?"
 
+## Using the Two-Step Process
+
+Radio France's API requires a two-step process to find content:
+
+1. First, find taxonomies (categories, themes) related to your search:
+   ```
+   get_taxonomies("histoire", 5)
+   ```
+
+2. Then, retrieve diffusions (episodes, programs) for a specific taxonomy:
+   ```
+   get_diffusions("c4291110-1341-11e8-b174-0a05d26f7eff", 10)
+   ```
+
+For convenience, the `search_podcasts` and `search_episodes` tools implement this two-step process automatically.
+
 ## Troubleshooting
 
 If you encounter issues:
 
 1. Make sure your API key is valid and properly set in the `.env` file
 2. Check your network connection to ensure you can reach the Radio France servers
-3. If the web scraping features aren't working as expected, the Radio France website structure may have changed
-4. For more detailed errors, check the server output in your terminal
-5. The API might have rate limits, so consider implementing caching for frequent queries
+3. Run the schema test to verify API structure: `python tests/test_schema.py`
+4. If the web scraping features aren't working as expected, the Radio France website structure may have changed
+5. For more detailed errors, check the server output in your terminal
+6. The API might have rate limits, so consider implementing caching for frequent queries
 
 ## API Key Acquisition
 
@@ -144,24 +197,15 @@ To get a Radio France API key:
 4. Create a new application
 5. Copy the generated API key
 
-## Extending the Server
-
-If you want to extend the server with additional functionality:
-
-1. Add new tool methods to `server.py` using the `@mcp.tool()` decorator
-2. Make sure to include proper error handling
-3. Document the new tools in this usage guide
-4. Consider contributing your improvements back to the repository
-
 ## Best Practices for Podcast Search
 
 When searching for podcasts, consider these tips for better results:
 
 1. Be specific with your search terms
-2. Include the station name if you know it (e.g., "France Culture")
-3. Use French language search terms for better matching
-4. Try multiple variations of your search query if you don't get good results initially
-5. Start with the `natural_language_search` tool which will automatically try different approaches
+2. Use French language search terms for better matching
+3. Try searching by category/taxonomy if direct search doesn't yield good results
+4. Use the `natural_language_search` tool for the most user-friendly experience
+5. For station-specific queries, use the station name in your search
 
 ## Privacy and Usage Notes
 
