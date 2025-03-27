@@ -39,35 +39,77 @@ A Model Control Protocol (MCP) server that allows AI assistants like Claude to s
    RADIOFRANCE_API_KEY=your_api_key_here
    ```
 
+## Testing
+
+Before running the server, you can verify your installation and API key by running the tests:
+
+```bash
+python run_tests.py
+```
+
+This will run basic tests to ensure that the server can connect to the Radio France API and retrieve data.
+
 ## Running the Server
 
 ```bash
 python server.py
 ```
 
-When using with Claude Desktop, update your Claude Desktop configuration:
+## Using with Claude Desktop
 
-```json
-{
-  "mcpServers": {
-    "radiofrance": {
-      "command": "python",
-      "args": ["/absolute/path/to/radiofrance-podcast-explorer-mcp/server.py"],
-      "env": {
-        "RADIOFRANCE_API_KEY": "your_api_key_here"
-      }
-    }
-  }
-}
-```
+To use this server with Claude Desktop:
 
-## Testing
+1. Open the file at the following location:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+2. Add or update the server configuration:
+   ```json
+   {
+     "mcpServers": {
+       "radiofrance": {
+         "command": "python",
+         "args": ["/absolute/path/to/radiofrance-podcast-explorer-mcp/server.py"],
+         "env": {
+           "RADIOFRANCE_API_KEY": "your_api_key_here"
+         }
+       }
+     }
+   }
+   ```
+
+3. Save the file and restart Claude Desktop
+
+## Development Testing
 
 You can test the server using the MCP Inspector:
 
 ```bash
 npx @modelcontextprotocol/inspector python server.py
 ```
+
+This will open a web interface where you can test each of the server's tools individually.
+
+## Documentation
+
+For more detailed information, see:
+
+- [Usage Guide](docs/usage.md) - Detailed instructions on using the server
+- [API Information](docs/api_info.md) - Information about the Radio France API
+
+## Example Queries for Claude
+
+Here are some example queries you can ask Claude when using this MCP server:
+
+1. "Find me podcasts about French history"
+2. "What's currently playing on France Inter?"
+3. "Search for podcast episodes about European politics"
+4. "What are the different podcast categories on Radio France?"
+5. "Get me information about the audio content at this URL"
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
