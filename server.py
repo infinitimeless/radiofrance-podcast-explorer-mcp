@@ -316,3 +316,171 @@ async def get_station_grid(station_code: str) -> str:
     
     except Exception as e:
         return json.dumps({"error": f"Error getting station grid: {str(e)}"})
+
+
+@mcp.tool()
+async def scrape_podcast_categories() -> str:
+    """Scrape and return all podcast categories from Radio France website.
+    
+    Returns:
+        JSON string containing podcast categories
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{PODCASTS_BASE_URL}",
+                headers={"User-Agent": USER_AGENT},
+                follow_redirects=True
+            )
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Updated selectors based on current Radio France website structure
+            categories = []
+            
+            # Try different potential selectors
+            category_elements = soup.select('.rf-taxonomy-item, .category-item, .theme-item, .podcast-category')
+            
+            if not category_elements:
+                # If no categories found with specific selectors, try more generic approach
+                category_elements = soup.select('nav li a, .categories a, .themes a')
+            
+            for element in category_elements:
+                # For anchor elements
+                if element.name == 'a':
+                    name = element.get_text().strip()
+                    url = element['href']
+                    
+                    if name and url:
+                        if not url.startswith('http'):
+                            url = f"{WEBSITE_BASE_URL}{url}"
+                            
+                        categories.append({
+                            "name": name,
+                            "url": url
+                        })
+                # For container elements with title and link
+                else:
+                    name_element = element.select_one('h2, h3, .title, .name')
+                    url_element = element.select_one('a')
+                    
+                    if name_element and url_element and 'href' in url_element.attrs:
+                        category_url = url_element['href']
+                        if not category_url.startswith('http'):
+                            category_url = f"{WEBSITE_BASE_URL}{category_url}"
+                            
+                        categories.append({
+                            "name": name_element.text.strip(),
+                            "url": category_url
+                        })
+            
+            # Add debug information if no categories were found
+            if not categories:
+                # Get some representative HTML to help debugging
+                sample_html = str(soup.select('body')[0])[:1000] if soup.select('body') else "No body found"
+                return json.dumps({
+                    "categories": [],
+                    "debug": {
+                        "message": "No categories found with current selectors",
+                        "sampleHtml": sample_html
+                    }
+                }, ensure_ascii=False, indent=2)
+            
+            return json.dumps({"categories": categories}, ensure_ascii=False, indent=2)
+    
+    except Exception as e:
+        return json.dumps({"error": f"Error scraping podcast categories: {str(e)}"})
+
+
+@mcp.tool()
+async def scrape_podcast_details(podcast_url: str) -> str:
+    """Scrape detailed information about a podcast from its URL.
+    
+    Args:
+        podcast_url: The URL of the podcast to scrape
+        
+    Returns:
+        JSON string containing detailed podcast information
+    """
+    try:
+        if not podcast_url.startswith('http'):
+            podcast_url = f"{WEBSITE_BASE_URL}{podcast_url}"
+            
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                podcast_url,
+                headers={"User-Agent": USER_AGENT},
+                follow_redirects=True
+            )
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Updated selectors with multiple options for flexibility
+            title_element = soup.select_one('.podcast-title, .brand-title, h1, [data-testid="title"]')
+            description_element = soup.select_one('.podcast-description, .brand-description, .description, [data-testid="description"]')
+            author_element = soup.select_one('.podcast-author, .brand-author, .author, [data-testid="author"]')
+            
+            episodes = []
+            episode_elements = soup.select('.podcast-episode, .episode-item, .diffusion-item, [data-testid="episode"]')
+            
+            for element in episode_elements:
+                episode_title = element.select_one('.episode-title, h3, .title, [data-testid="episode-title"]')
+                episode_date = element.select_one('.episode-date, .date, time, [data-testid="episode-date"]')
+                episode_duration = element.select_one('.episode-duration, .duration, [data-testid="episode-duration"]')
+                episode_url_element = element.select_one('a, [data-testid="episode-link"]')
+                
+                if episode_title and episode_url_element and 'href' in episode_url_element.attrs:
+                    episode_url = episode_url_element['href']
+                    if not episode_url.startswith('http'):
+                        episode_url = f"{WEBSITE_BASE_URL}{episode_url}"
+                        
+                    episodes.append({
+                        "title": episode_title.text.strip() if episode_title else "",
+                        "date": episode_date.text.strip() if episode_date else "",
+                        "duration": episode_duration.text.strip() if episode_duration else "",
+                        "url": episode_url
+                    })
+            
+            # If no episodes found with specific selectors, try more generic approach
+            if not episodes:
+                # Look for list items or article elements that might contain episodes
+                generic_elements = soup.select('li.episode, article, .card')
+                for element in generic_elements:
+                    title = element.select_one('h2, h3, h4, .title')
+                    link = element.select_one('a[href]')
+                    date = element.select_one('time, .date')
+                    
+                    if title and link and 'href' in link.attrs:
+                        episode_url = link['href']
+                        if not episode_url.startswith('http'):
+                            episode_url = f"{WEBSITE_BASE_URL}{episode_url}"
+                            
+                        episodes.append({
+                            "title": title.text.strip(),
+                            "date": date.text.strip() if date else "",
+                            "duration": "",  # May not find duration with generic approach
+                            "url": episode_url
+                        })
+            
+            result = {
+                "title": title_element.text.strip() if title_element else "",
+                "description": description_element.text.strip() if description_element else "",
+                "author": author_element.text.strip() if author_element else "",
+                "url": podcast_url,
+                "episodes": episodes
+            }
+            
+            # Add debug information if no content was found
+            if not title_element and not episodes:
+                sample_html = str(soup.select('body')[0])[:1000] if soup.select('body') else "No body found"
+                result["debug"] = {
+                    "message": "Limited podcast information found with current selectors",
+                    "sampleHtml": sample_html
+                }
+            
+            return json.dumps(result, ensure_ascii=False, indent=2)
+    
+    except Exception as e:
+        return json.dumps({"error": f"Error scraping podcast details: {str(e)}"})
