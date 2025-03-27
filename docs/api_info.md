@@ -24,95 +24,123 @@ x-token: YOUR_API_KEY
 
 The API provides access to several entity types:
 
-1. **Stations**: Radio France broadcast channels (France Inter, France Culture, etc.)
-2. **Shows**: Regular radio programs
-3. **Episodes**: Individual podcast episodes
-4. **Persons**: Contributors, hosts, guests
-5. **Topics**: Subject categories and tags
+1. **Taxonomies**: Categories, tags, and themes that organize content
+2. **Diffusions**: Content items (episodes, programs) associated with taxonomies
+3. **Brands**: Shows and podcast series
+4. **Grid**: Program schedules for stations
+5. **Stations**: Radio France broadcast channels (France Inter, France Culture, etc.)
+6. **Persons**: Contributors, hosts, guests
+
+## Content Organization
+
+Radio France's API follows a taxonomy-driven approach to content organization:
+
+1. Content is primarily organized through taxonomies (themes, categories, tags)
+2. Accessing content requires a two-step process:
+   - First get taxonomy IDs related to your search
+   - Then query diffusions using those taxonomy IDs
+3. Stations have program grids that provide scheduling information
+4. Brands (shows) have associated diffusions (episodes)
 
 ## Common GraphQL Queries
 
-### Search
+### Get Taxonomies
 
-This query searches across multiple entity types:
+This query retrieves taxonomies (categories, themes, tags):
 
 ```graphql
-query Search($query: String!, $limit: Int!) {
-  search(query: $query, limit: $limit) {
-    shows {
+query GetTaxonomies($limit: Int!, $keyword: String) {
+  taxonomies(limit: $limit, keyword: $keyword) {
+    id
+    title
+    type
+    url
+    description
+  }
+}
+```
+
+### Get Diffusions by Taxonomy
+
+This query retrieves content items for a specific taxonomy:
+
+```graphql
+query GetDiffusions($taxonomyId: ID!, $limit: Int!) {
+  taxonomy(id: $taxonomyId) {
+    id
+    title
+    diffusions(limit: $limit) {
+      id
       title
-      description
       url
-      podcast {
+      standFirst
+      brand {
+        title
+        station {
+          name
+        }
+      }
+      diffusionDate
+      podcastEpisode {
         url
       }
-      station {
-        name
-      }
-    }
-    episodes {
-      title
-      description
-      url
-      publishedDate
-      duration
     }
   }
 }
 ```
 
-### Station Programs
+### Get Station Grid
 
 This query retrieves current and upcoming programs for a station:
 
 ```graphql
-query StationPrograms($name: String!) {
-  station(name: $name) {
-    name
-    currentProgram {
-      title
-      description
-      startTime
-      endTime
-      url
+query GetStationGrid($stationCode: String!) {
+  grid(station: $stationCode) {
+    station {
+      id
+      name
     }
-    nextPrograms(first: 5) {
-      title
-      description
+    steps {
       startTime
       endTime
-      url
+      diffusion {
+        id
+        title
+        standFirst
+        url
+        brand {
+          title
+        }
+      }
     }
   }
 }
 ```
 
-### Show Details
+### Get Brand Information
 
-This query gets detailed information about a specific show:
+This query retrieves information about a specific brand (show/program):
 
 ```graphql
-query ShowDetails($showId: ID!) {
-  show(id: $showId) {
+query GetBrand($brandId: ID!) {
+  brand(id: $brandId) {
+    id
     title
     description
     url
-    podcast {
-      url
-    }
     station {
       name
     }
-    latestEpisodes(first: 10) {
+    concepts {
+      id
       title
-      description
-      url
-      publishedDate
-      duration
     }
-    persons {
-      name
-      role
+    latestDiffusions(limit: 5) {
+      id
+      title
+      url
+      standFirst
+      diffusionDate
     }
   }
 }
